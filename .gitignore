@@ -1,0 +1,26 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node (in case anyone adds deps later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# MobAI's per-project working directory (test_runs are checked in
+# explicitly as fixtures; the auto-generated copies under .mobai/ are not).
+.mobai/
+
+# Recorder runtime artifacts (PID/log live next to the mp4 while recording)
+*.pid
+*.log
+
+demo-out

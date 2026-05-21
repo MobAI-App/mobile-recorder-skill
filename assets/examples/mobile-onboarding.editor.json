@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+
+  "trim": { "fromLine": 33, "toLine": 113 },
+
+  "directives": [
+    { "kind": "zoom", "line": 33,  "side": "during", "scale": 1.6, "windowMs": 1200 },
+    { "kind": "zoom", "line": 76,  "side": "during", "scale": 2.0, "windowMs": 1000, "rampMs": 250 },
+    { "kind": "zoom", "line": 113, "side": "during", "scale": 2.5, "windowMs": 1400, "rampMs": 300 },
+
+    { "kind": "speed", "line": 40,  "side": "during", "factor": 4.0 },
+    { "kind": "speed", "line": 72,  "side": "during", "factor": 4.0 },
+    { "kind": "speed", "line": 78,  "side": "during", "factor": 8.0 },
+    { "kind": "speed", "line": 84,  "side": "during", "factor": 4.0 },
+    { "kind": "speed", "line": 89,  "side": "during", "factor": 4.0 },
+    { "kind": "speed", "line": 109, "side": "during", "factor": 4.0 }
+  ]
+}

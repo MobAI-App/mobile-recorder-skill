@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+
+  "_doc": "Editor directives, anchored to .mob source line numbers. The .mob owns choreography; this file owns post-production. Pipeline: highlights → zoom → speedups → export. Remove the _doc fields when you copy this template.",
+
+  "trim": {
+    "_doc": "Optional. fromLine/toLine reference .mob action lines. Defaults to first action → last action end + 600 ms.",
+    "fromLine": 33,
+    "toLine": 113
+  },
+
+  "directives": [
+    {
+      "_doc": "ZOOM. side ∈ before|during|after. center optional — defaults to the tap's (x,y), swipe midpoint, or screen center. rampMs optional (default 200). windowMs optional — set when the resolved span is zero-width (e.g. `during` on a tap) or when you want a fixed-length window centered on the action.",
+      "kind": "zoom",
+      "line": 76,
+      "side": "during",
+      "scale": 2.0,
+      "windowMs": 1200
+    },
+    {
+      "kind": "zoom",
+      "line": 113,
+      "side": "before",
+      "scale": 2.5,
+      "center": { "x": 990, "y": 1539 },
+      "rampMs": 300
+    },
+
+    {
+      "_doc": "SPEED. side ∈ before|during|after. factor > 0, != 1. Every speed segment is explicit — there is no auto pass over `reason: technical` waits. To compress all technical waits, emit one directive per wait line. viewer_readability waits are typically left alone.",
+      "kind": "speed",
+      "line": 40,
+      "side": "during",
+      "factor": 4.0
+    },
+    {
+      "kind": "speed",
+      "line": 78,
+      "side": "during",
+      "factor": 8.0
+    }
+  ]
+}

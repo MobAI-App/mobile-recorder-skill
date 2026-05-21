@@ -1,0 +1,17 @@
+[
+  {
+    "startMs": 0,
+    "endMs": 2000,
+    "text": "Start in seconds"
+  },
+  {
+    "startMs": 2000,
+    "endMs": 4500,
+    "text": "Create your first project"
+  },
+  {
+    "startMs": 4500,
+    "endMs": 6500,
+    "text": "Done"
+  }
+]
