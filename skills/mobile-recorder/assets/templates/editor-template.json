@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+
+  "_doc": "Editor directives, anchored to .mob source line numbers. The .mob owns choreography; this file owns post-production (captions, zoom, speed, trim, per-tap highlight tweaks). Every directive accepts signed `startDelayMs` / `endDelayMs` ms offsets - use them to fine-tune timing without re-recording. Remove all `_doc` fields when you copy this template.",
+
+  "trim": {
+    "_doc": "Optional. fromLine/toLine reference .mob action lines. Delays shift each endpoint by signed ms. Defaults to first action → last action end + 600 ms.",
+    "fromLine":     33,
+    "toLine":       113,
+    "startDelayMs": -200,
+    "endDelayMs":   0
+  },
+
+  "captions": [
+    {
+      "_doc": "CAPTIONS. Top-level array - preferred over the legacy `# Caption:` comments in .mob. Each entry takes either `toLine` (+ optional `endDelayMs`) OR `durationMs`. Captions may NOT overlap in time (single shared bottom strip).",
+      "text":         "Start in seconds",
+      "fromLine":     33,
+      "startDelayMs": -300,
+      "toLine":       40,
+      "endDelayMs":   -400
+    },
+    {
+      "text":       "Done",
+      "fromLine":   113,
+      "durationMs": 1800
+    }
+  ],
+
+  "highlights": [
+    {
+      "_doc": "PER-TAP highlight tweaks. Positive `startDelayMs` pushes the ripple + walking-finger arrival deeper into a long tap whose visual response lands well after touch-down (e.g. iOS view-transition taps with 700 ms+ MobAI durationMs). Unlisted lines fire at the natural startedAtMs.",
+      "line":         33,
+      "startDelayMs": 0
+    }
+  ],
+
+  "directives": [
+    {
+      "_doc": "MULTI-ACTION ZOOM. `fromLine`/`toLine` holds at peak across multiple actions (no unzoom-rezoom dip between). Optional `pan: [{afterMs, x, y, ease?}]` waypoints fly the camera within the range - `afterMs` is absolute, relative to the post-delay segment start. `ease` ∈ linear|in|out|in_out (default in_out). Default center is canvas horizontal-center + vertical-clamped so the status bar stays visible; override with explicit `x` / `y` in canvas pixels.",
+      "kind":         "zoom",
+      "fromLine":     33,
+      "toLine":       113,
+      "startDelayMs": -200,
+      "endDelayMs":   300,
+      "scale":        1.5,
+      "x":            1440,
+      "y":            540,
+      "rampMs":       300,
+      "pan": [
+        { "afterMs": 1500, "x": 1440, "y": 700, "ease": "in_out" },
+        { "afterMs": 5000, "x": 1440, "y": 540, "ease": "in_out" }
+      ]
+    },
+    {
+      "_doc": "SINGLE-ACTION ZOOM (legacy shape, still supported). `side` ∈ before|during|after. Use `windowMs` when `side: during` lands on a tap (zero-width span).",
+      "kind":     "zoom",
+      "line":     76,
+      "side":     "during",
+      "scale":    2.0,
+      "windowMs": 1200
+    },
+    {
+      "_doc": "SPEED. Same anchor shape as zoom - `{line, side}` or `{fromLine, toLine}`. `factor` > 0, != 1. Every speed segment is explicit - there is no auto pass over `reason: technical` waits. Overlapping segments are a hard error.",
+      "kind":     "speed",
+      "line":     78,
+      "side":     "during",
+      "factor":   6.0
+    }
+  ]
+}

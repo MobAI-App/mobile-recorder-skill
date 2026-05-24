@@ -1,92 +1,66 @@
 # mobile-recorder-skill
 
-Claude Code skill that turns a prompt into a reproducible mobile-app demo video. The agent explores the app, writes a deterministic `.mob` choreography script, records a clean take via MobAI, and runs a Node + ffmpeg pipeline that adds tap highlights, frames the recording in a phone bezel + background, applies zoom/speed/trim from a sidecar `editor.json`, and exports to standard social formats.
+An agent skill that records polished, reproducible demo videos of iOS and Android apps. Drives [MobAI](https://mobai.run) to capture native pixels, then runs a Node + ffmpeg pipeline that adds tap ripples + finger overlay, frames the recording in a phone bezel + background, applies zoom / speed / trim from a sidecar `editor.json`, and exports to standard social formats.
 
-For desktop/web demos, use the sibling `desktop-recorder-skill`.
+> **Maintainer:** [MobAI](https://mobai.run) · [contact@mobai.run](mailto:contact@mobai.run) · [`@MobAI-App`](https://github.com/MobAI-App)
+>
+> **Platform:** macOS / Linux. iOS recording goes through MobAI's bridge; Android recording requires `adb`.
+
+The skill teaches an agent to:
+
+1. **Explore** the app via MobAI (UI tree, screenshots, OCR).
+2. **Author** a `.mob` script - coordinate-only choreography, no predicates, no `if_exists`.
+3. **Normalize state** outside the script (close app, dismiss popups, navigate to start).
+4. **Dry-run** the `.mob` via `test_run` until it passes cleanly.
+5. **Record** via `mobile_record_mjpeg.sh` (MobAI HTTP MJPEG, iOS Simulator + physical iOS) or `mobile_record_android.sh` (`adb screenrecord`).
+6. **Edit** through `build_timeline → highlights → frame → zoom → speedups → export`.
+7. **Ship** an mp4 with tap highlights, captions, variable speed, and upload copy.
+
+Golden rule: `explore → script → dry-run → record → edit → export`. Never observe-then-decide mid-recording.
 
 ## Install
 
-This is a Claude Code skill. Drop the folder into your skills directory (or install via your plugin marketplace) and the agent will load `SKILL.md` automatically when a user asks to record a mobile demo. See `SKILL.md` for the canonical agent rules; this README is for developers maintaining the scripts.
+Paste this into Claude Code, Codex, Cursor, or any agent that can read a public repo and run shell commands:
 
-## Pipeline
+> Set up `https://github.com/MobAI-App/mobile-recorder-skill` for me.
+> Read `install.md` and follow the steps to install the pipeline
+> dependencies (ffmpeg, jq, node), confirm MobAI is running, and
+> register the skill with my agent runtime.
+
+The flow checks `ffmpeg` / `node` / `jq`, walks you through MobAI install + simulator/device setup, copies `skills/mobile-recorder/` into your agent's skills directory, and runs a 2-second recording smoke test. Manual recipe in [`install.md`](./install.md).
+
+## Use
+
+Ask your agent for a recording:
+
+- "Record a 30-second demo of MyApp on the iPhone 16 Pro simulator."
+- "Make a vertical demo of the onboarding flow on Android."
+- "Cut a bug repro of the login crash on iPhone."
+
+The skill triggers automatically and produces:
 
 ```
-record    →  mobile_record_mjpeg.sh        # → demo.raw.mp4 (+ .start_ts, .warmup_ms, .pid sidecars)
-stop      →  mobile_record_stop.sh         # SIGINT + post-hoc retime for MJPEG
-timeline  →  build_timeline.js             # .mob + test_run.json → timeline.json
-highlights→  add_highlights.js             # tap ripples, moving-finger, swipe trail → demo.hl.mp4
-frame     →  add_frame.js                  # bezel + bg composite → demo.framed.mp4 (+ .frame.json)
-zoom      →  add_zoom.js                   # ffmpeg zoompan on composite → demo.hlz.mp4
-speedups  →  add_speedups.js               # warp segments → demo.hlzs.mp4 (+ .timewarp.json)
-export    →  export_video.js               # trim + scale + pad → demo.vertical.mp4
-captions  →  burn_captions.js              # optional libass burn-in
-copy      →  generate_copy.js              # title / post / Shorts / thumbnail
+demo.mob              reproducible choreography
+editor.json           post-production directives (zoom / speed / trim)
+demo.raw.mp4          native recording + .start_ts / .warmup_ms sidecars
+demo.vertical.mp4     final 1080x1920 export + .captions.json sidecar
+copy.md               upload copy
 ```
 
-Each stage propagates a `*.captions.json` sidecar in the appropriate time space (recording, post-warp, or trimmed). The shared resolver is `scripts/lib/editor.js` (loads timeline + editor.json, resolves line directives, probes fps).
+See [`skills/mobile-recorder/references/editing.md`](./skills/mobile-recorder/references/editing.md) for the editing stage chain and intermediate mp4s.
 
-## Recording backends
+## Authorization
 
-| Target | Script | Backend | Notes |
-|---|---|---|---|
-| iOS Simulator | `mobile_record_mjpeg.sh` | MobAI HTTP MJPEG q=100 (primary) | 30fps CFR after retime, writes `.start_ts` for accurate `recordStartOffsetMs`. |
-| iOS Simulator | `mobile_record_ios_sim.sh` | `xcrun simctl io recordVideo` (no-MobAI fallback) | Still works (verified May 2026). VFR (~23-25fps avg). Writes `.start_ts` at spawn time, accurate to one IPC roundtrip. |
-| iOS physical device | `mobile_record_mjpeg.sh` | MobAI HTTP MJPEG q=100 | simctl unavailable for physical devices. |
-| Android | `mobile_record_android.sh` | `adb shell screenrecord` + `adb pull` | Caps at ~3 minutes per call. |
+The skill drives a real device or simulator. It taps, swipes, types, and launches apps in the named target only; it asks before touching anything else. Recording captures whatever's on the device screen, so close any private windows before starting.
 
-The polished workflow is MJPEG-centric: the `mobile_record_stop.sh` helper does a post-hoc `setpts*PTS,fps=30` retime when the captured mp4 is more than 5% longer than wall-clock (MobAI over-delivers MJPEG frames during interactions and ffmpeg has no per-frame timestamps from the multipart stream). simctl/adb produce wall-clock-accurate mp4s; running the stop helper against them is a no-op.
+## Out of scope
 
-## Requirements
-
-- macOS or Linux. The pipeline shells out heavily.
-- `ffmpeg` and `ffprobe` with libass (Homebrew default ships both).
-- `node` >= 16.
-- `jq` for the recorder shell scripts.
-- MobAI desktop app with the bridge started, for the MJPEG path (primary) and `test_run` orchestration.
-- Xcode Command Line Tools (`xcrun`) only if you fall back to `mobile_record_ios_sim.sh`.
-- Android platform-tools (`adb`) only for the Android path.
-
-Each recording script checks its own dependencies at runtime.
-
-## Known quirks
-
-- `xcrun simctl io recordVideo` requires an **absolute** output path; relative paths fail with a misleading "SimRenderServer error 2". `mobile_record_ios_sim.sh` resolves to absolute automatically.
-- The MJPEG endpoint must be called with `quality=100`. Counter-intuitively this produces *smaller* final mp4s than lower quality, because clean JPEGs re-encode through H.264 (CRF 18) more efficiently than noisy ones. `mobile_record_mjpeg.sh` defaults to 100.
-- MobAI's MJPEG stream has no per-frame timestamps and over-delivers during interactions. Without `mobile_record_stop.sh` retime, you get a slow-motion mp4 and highlights drift off the actions.
-- `build_timeline.js` needs `--recording <path>` to pick up `.start_ts` + `.warmup_ms` sidecars. Without it the builder falls back to `warmup + sum(setup-step durations)`, which is wrong by however many seconds elapsed between the recorder starting and `test_run` actually firing.
-- ffmpeg's `geq` filter does not recognize `and()` / `or()` / `not()` as functions; we encode booleans via arithmetic (`AND` = product, `OR` = `gt(sum, 0)`, `NOT` = `1 - x`). See the helpers in `scripts/add_frame.js`.
-- ffmpeg's `alphamerge` defaults to `shortest=0`; with a looped PNG mask it emits frames forever. Always pass `shortest=1`.
-- The frame canvas aspect must match the export aspect (the exporter pads rather than crops). Default canvas is 1620x2880 (vertical 9:16, 1.5x the 1080x1920 export); change `--canvas` if you target horizontal or square.
-
-## Development
-
-The scripts are independent CLIs; each can be invoked directly without going through the agent. To iterate without the full agent flow, record a short take yourself and run the stages by hand against the resulting files:
-
-```bash
-# 1. Record (MobAI bridge running, simulator booted):
-scripts/mobile_record_mjpeg.sh /tmp/demo.raw.mp4 <udid> 60 100
-# … run your .mob via MobAI's test_run, save the JSON output to /tmp/test_run.json …
-scripts/mobile_record_stop.sh /tmp/demo.raw.mp4
-
-# 2. Build the timeline + run the pipeline:
-node scripts/build_timeline.js path/to/demo.mob /tmp/test_run.json \
-     /tmp/timeline.json --scale 3 --recording /tmp/demo.raw.mp4
-
-node scripts/add_highlights.js /tmp/demo.raw.mp4 /tmp/timeline.json /tmp/demo.hl.mp4
-
-node scripts/add_frame.js /tmp/demo.hl.mp4 /tmp/demo.framed.mp4 \
-     --bg-gradient 1f2937:6b21a8
-
-node scripts/export_video.js /tmp/demo.framed.mp4 /tmp/timeline.json \
-     path/to/editor.json /tmp/demo.vertical.mp4 vertical_9_16
-```
-
-Editor + zoom + speedup stages are optional and slot in between `add_frame` and `export_video` (see [`references/editing.md`](./references/editing.md) for the full ordering).
-
-`build_timeline.js --validate <timeline.json>` runs the timeline invariants check without rebuilding.
-
-`references/` holds the long-form rules consumed by the agent (`mobile.md`, `timeline.md`, `editor.md`, `editing.md`). Keep them in sync when behavior changes. Worked examples and templates live under `assets/examples/` and `assets/templates/`.
+Desktop / web demos (use the sibling [`desktop-recorder-skill`](https://github.com/MobAI-App/desktop-recorder-skill)), direct upload to YouTube/TikTok/X, AI voiceover/music, GUI video editing.
 
 ## License
 
-MIT (c) MobAI. See [LICENSE](./LICENSE).
+[MIT](./LICENSE) - Copyright (c) 2026 [MobAI](https://mobai.run).
+
+## Contributing
+
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for dev setup and PR conventions. Reach out at [contact@mobai.run](mailto:contact@mobai.run) for anything that doesn't fit the issue tracker.
