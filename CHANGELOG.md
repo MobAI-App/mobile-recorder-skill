@@ -22,6 +22,16 @@ through a Node + ffmpeg pipeline.
   vendored `opentype.js`, bundled Inter Bold). `burn_captions.js` renders
   each caption to a PNG and overlays via ffmpeg's standard `overlay`
   filter - no libass / libfreetype dependency.
+- **Remotion bridge** (`remotion-template/`): optional React motion-graphics
+  path alongside the ffmpeg pipeline. `loadRecording()` turns the recording
+  contract (`timeline.json` + `editor.json`) into frame-indexed props;
+  components `<RecordingStage>` / `<PhoneBezel>` / `<RecordingCard>` /
+  `<Cursor>` / `<TapRipple>` / `<SwipePath>` / `<Caption>` do the
+  integration (walking-cursor + ripples + swipe trail are timeline-driven
+  in React, no ffmpeg-expression limits). A `speed` knob scales duration
+  + event frames and feeds `playbackRate`. The agent writes only the
+  creative composition; the user supplies the Remotion runtime
+  (`npm install` + headless Chrome).
 - **`.start_ts` + `.warmup_ms` sidecars** written by every recorder script;
   `build_timeline.js --recording <path>` picks them up to compute
   `recordStartOffsetMs` accurately regardless of how long the agent waits

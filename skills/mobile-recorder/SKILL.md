@@ -188,6 +188,7 @@ Load these as needed:
 - `references/timeline.md` - `DemoTimelineEvent` schema and how to build `timeline.json` from `.mob` source + `test_run` results
 - `references/editor.md` - `editor.json` schema (zoom / speed / trim directives, `side` semantics, defaults)
 - `references/editing.md` - pipeline order, highlights, captions, speed-up rules, time math, export presets
+- `remotion-template/` - optional Remotion bridge: turn a recording (`timeline.json` + `editor.json` + `rec.mp4`) into React motion graphics. The bridge (`loadRecording` + `<RecordingStage>`/`<PhoneBezel>`/`<RecordingCard>`/`<Cursor>`/`<TapRipple>`/`<SwipePath>`/`<Caption>`) does the integration; you only write the creative composition. Separate from the lean ffmpeg pipeline; needs `npm install` and headless Chrome. See its `README.md`.
 
 ## Example scripts
 

@@ -1,0 +1,19 @@
+{
+  "name": "mobile-recorder-remotion-template",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render Demo out/video.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.465",
+    "remotion": "4.0.465",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.0",
+    "typescript": "5.5.4"
+  }
+}

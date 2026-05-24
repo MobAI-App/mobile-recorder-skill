@@ -1,0 +1,8 @@
+node_modules/
+package-lock.json
+out/
+# the recording you drop in is not part of the template
+public/rec.*
+public/timeline.json
+public/editor.json
+public/demo.mob
